@@ -2,51 +2,66 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class ConsoleApp {
 
-    // TODO bash commands verification (how each command behave in bash)
+    // TODO bash commands verification (how each command works in bash)
     // TODO JUnit 5 test suite in a separate file
     // TODO java.nio version
 
     private static File currPath = new File("/");
+    private static Map<String, String[]> recentCommands = new LinkedHashMap<>();
 
     public static final String CD = "cd";
     public static final String DESTR = "destr"; // removes non-empty folders
-    public static final String EXIT = "exit";
     public static final String LS = "ls";
     public static final String MKDIR = "mkdir";
     public static final String MV = "mv"; // method doesn't work: requires java.nio
     public static final String RM = "rm";
     public static final String TOUCH = "touch";
 
+    public static final String HISTORY = "history";
+    public static final String EXIT = "exit";
+
     public static void main(String[] args) throws IOException {
         InputStreamReader isr = new InputStreamReader(System.in);
         BufferedReader br = new BufferedReader(isr);
 
         while (true) {
-            displayMenu();
-
+            // displayMenu();
+            System.out.print(currPath.getAbsolutePath() + "> ");
             String[] input = br.readLine().trim().split(" ");
+
+            Timestamp ts = new Timestamp(new Date().getTime());
+            recentCommands.put(ts.toString(), input);
+
             if (input.length == 0) {
                 continue;
             }
 
             if (input.length == 1) {
                 switch (input[0].toLowerCase()) {
-                    case LS:
-                        list();
-                        break;
-                    case EXIT:
-                        System.out.println("Good Bye :-)");
-                        return;
                     case CD:
                     case MKDIR:
-                    // case MV:
+                        // case MV:
                     case RM:
                     case TOUCH:
                         System.out.println("Wrong command format. Try again");
                         break;
+                    case LS:
+                        list();
+                        break;
+                    case HISTORY:
+                        displayHistory();
+                        break;
+                    case EXIT:
+                        System.out.println("Good Bye :-)");
+                        return;
                     default:
                         System.out.println("Unknown command. Try again");
                 }
@@ -60,20 +75,20 @@ public class ConsoleApp {
                             changeDir(formDirectoryName(input));
                         }
                         break;
-                    case TOUCH:
-                        createFile(input[1]);
+                    case DESTR:
+                        destroy(input[1]);
                         break;
                     case MKDIR:
                         createDir(input[1]);
                         break;
                     // case MV:
-                        // moveFileDir(input);
-                        // break;
+                    // moveFileDir(input);
+                    // break;
                     case RM:
                         remove(input[1]);
                         break;
-                    case DESTR:
-                        destroy(input[1]);
+                    case TOUCH:
+                        createFile(input[1]);
                         break;
                     default:
                         System.out.println("Unknown command. Try again");
@@ -94,7 +109,6 @@ public class ConsoleApp {
         System.out.println("\t\t exit - exit the program");
         System.out.println("\t *folder will be removed regardless if it is empty or not");
         System.out.println("\t ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-        System.out.print(currPath.getAbsolutePath() + "> ");
     }
 
     public static void list() {
@@ -273,4 +287,28 @@ public class ConsoleApp {
     }
          */
     }
+
+    // TODO proper entry format
+    private static void displayHistory() {
+        String key = null;
+        String[] value = null;
+        for (Map.Entry<String, String[]> entry : recentCommands.entrySet()) {
+            key = entry.getKey();
+            value = entry.getValue();
+        }
+        
+        recentCommands.forEach((k, v) -> System.out.print(k + " " + Arrays.toString(v) + "\n"));
+//        for (int i = 0; i < recentCommands.size(); i++) {
+//            System.out.print(i + " ");
+//
+//            System.out.println();
+//        }
+    }
+//    private static void displayStrings(String[] arr) {
+//        for (String s : arr) {
+//            System.out.print(s + " ");
+//        }
+//        System.out.println();
+//    }
+
 }
