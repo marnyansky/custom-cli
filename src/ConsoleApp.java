@@ -3,10 +3,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Timestamp;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 
 public class ConsoleApp {
 
@@ -15,14 +14,14 @@ public class ConsoleApp {
     // TODO java.nio version
 
     private static File currPath = new File("/");
-    private static Map<String, String[]> recentCommands = new LinkedHashMap<>();
+    private static List<String> commandsTime = new ArrayList<>();
+    private static List<String> commands = new ArrayList<>();
 
     public static final String CD = "cd";
-    public static final String DESTR = "destr"; // removes non-empty folders
     public static final String LS = "ls";
     public static final String MKDIR = "mkdir";
     public static final String MV = "mv"; // method doesn't work: requires java.nio
-    public static final String RM = "rm";
+    public static final String RM = "rm"; // supports '-r' key
     public static final String TOUCH = "touch";
 
     public static final String HISTORY = "history";
@@ -33,12 +32,13 @@ public class ConsoleApp {
         BufferedReader br = new BufferedReader(isr);
 
         while (true) {
-            // displayMenu();
+            displayMenu();
             System.out.print(currPath.getAbsolutePath() + "> ");
             String[] input = br.readLine().trim().split(" ");
 
             Timestamp ts = new Timestamp(new Date().getTime());
-            recentCommands.put(ts.toString(), input);
+            commandsTime.add(ts.toString());
+            commands.add(buildStringFromArray(input));
 
             if (input.length == 0) {
                 continue;
@@ -72,23 +72,30 @@ public class ConsoleApp {
                             File parent = currPath.getParentFile();
                             currPath = parent != null ? parent : currPath;
                         } else {
-                            changeDir(formDirectoryName(input));
+                            input[0] = "";
+                            changeDir(buildStringFromArray(input));
                         }
                         break;
-                    case DESTR:
-                        destroy(input[1]);
-                        break;
                     case MKDIR:
-                        createDir(input[1]);
+                        input[0] = "";
+                        createDir(buildStringFromArray(input));
                         break;
                     // case MV:
                     // moveFileDir(input);
                     // break;
                     case RM:
-                        remove(input[1]);
+                        if (input.length > 2 && input[1].equals("-r")) {
+                            input[0] = "";
+                            input[1] = "";
+                            removeNonEmpty(buildStringFromArray(input));
+                        } else {
+                            input[0] = "";
+                            remove(buildStringFromArray(input));
+                        }
                         break;
                     case TOUCH:
-                        createFile(input[1]);
+                        input[0] = "";
+                        createFile(buildStringFromArray(input));
                         break;
                     default:
                         System.out.println("Unknown command. Try again");
@@ -98,14 +105,15 @@ public class ConsoleApp {
     }
 
     public static void displayMenu() {
-        System.out.println("\t ~C~O~N~S~O~L~E~~~A~P~P~~~2020-12-16~");
+        System.out.println("\t ~C~O~N~S~O~L~E~~~A~P~P~~~2020-12-19~");
         System.out.println("\t\t ls - display list of files and sub-folders of current folder");
         System.out.println("\t\t cd [dir] - change folder");
         System.out.println("\t\t touch [file] - create a new file");
         System.out.println("\t\t mkdir [dir] - create a new sub-folder");
         // System.out.println("\t\t mv [file/dir] > [file/dir] - move or rename file or directory");
-        System.out.println("\t\t rm [file/dir] - remove file or empty sub-folder");
-        System.out.println("\t\t destr [file/dir] - remove* file or sub-folder");
+        System.out.println("\t\t rm [file/dir] - remove file or empty sub-folder (supports '-r' key*)");
+        System.out.println();
+        System.out.println("\t\t history - displays all commands in the session");
         System.out.println("\t\t exit - exit the program");
         System.out.println("\t *folder will be removed regardless if it is empty or not");
         System.out.println("\t ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -187,7 +195,7 @@ public class ConsoleApp {
         }
     }
 
-    public static void destroy(String name) {
+    public static void removeNonEmpty(String name) {
         File obj = removeIfEmpty(name);
         if (obj == null) {
             return;
@@ -225,37 +233,43 @@ public class ConsoleApp {
         return obj;
     }
 
-    private static String formDirectoryName(String[] input) {
+    private static String buildStringFromArray(String[] words) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 1; i < input.length; i++) {
-            sb.append(input[i]).append(" ");
+        for (int i = 0; i < words.length; i++) {
+            sb.append(words[i]).append(" ");
         }
         return sb.toString().trim();
     }
 
-    private static void moveFileDir(String[] input) {
+    private static void displayHistory() {
+        for (int i = 0; i < commandsTime.size(); i++) {
+            System.out.println((i + 1) + " " + commandsTime.get(i) + " " + commands.get(i));
+        }
+    }
+
+    private static void moveFileDir(String[] words) {
         // TODO requires java.nio to work properly: https://stackoverflow.com/questions/1000183/reliable-file-renameto-alternative-on-windows/5451161#5451161
         /*
-        if (input.length < 4 || input[1].equals(">")) {
+        if (words.length < 4 || words[1].equals(">")) {
             System.out.println("Wrong command format. Try again");
             return;
         }
 
         StringBuilder nameCurr = new StringBuilder();
-        for (int i = 1; i < input.length - 1; i++) {
-            if (input[i].equals(">")) {
+        for (int i = 1; i < words.length - 1; i++) {
+            if (words[i].equals(">")) {
                 break;
             }
-            if (i == input.length - 1) {
+            if (i == words.length - 1) {
                 System.out.println("Wrong command format. Try again");
                 return;
             }
-            nameCurr.append(input[i]);
+            nameCurr.append(words[i]);
         }
 
         StringBuilder nameTarget = new StringBuilder();
-        for (int i = 3; i < input.length; i++) {
-            nameTarget.append(input[i]);
+        for (int i = 3; i < words.length; i++) {
+            nameTarget.append(words[i]);
         }
 
         //remove this debugging
@@ -287,28 +301,5 @@ public class ConsoleApp {
     }
          */
     }
-
-    // TODO proper entry format
-    private static void displayHistory() {
-        String key = null;
-        String[] value = null;
-        for (Map.Entry<String, String[]> entry : recentCommands.entrySet()) {
-            key = entry.getKey();
-            value = entry.getValue();
-        }
-        
-        recentCommands.forEach((k, v) -> System.out.print(k + " " + Arrays.toString(v) + "\n"));
-//        for (int i = 0; i < recentCommands.size(); i++) {
-//            System.out.print(i + " ");
-//
-//            System.out.println();
-//        }
-    }
-//    private static void displayStrings(String[] arr) {
-//        for (String s : arr) {
-//            System.out.print(s + " ");
-//        }
-//        System.out.println();
-//    }
 
 }
